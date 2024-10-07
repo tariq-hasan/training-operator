@@ -47,17 +47,28 @@ func setPodEnv(obj interface{}, podTemplateSpec *corev1.PodTemplateSpec, rtype, 
 	}
 
 	for i := range podTemplateSpec.Spec.Containers {
-		// Initialize the environment variables.
+		// Initialize the environment variables if not already initialized.
 		if len(podTemplateSpec.Spec.Containers[i].Env) == 0 {
 			podTemplateSpec.Spec.Containers[i].Env = make([]corev1.EnvVar, 0)
 		}
-		// Set PYTHONUNBUFFERED to true, to disable output buffering.
-		// Ref https://stackoverflow.com/questions/59812009/what-is-the-use-of-pythonunbuffered-in-docker-file.
-		podTemplateSpec.Spec.Containers[i].Env = append(
-			podTemplateSpec.Spec.Containers[i].Env, corev1.EnvVar{
-				Name:  "PYTHONUNBUFFERED",
-				Value: "1",
-			})
+
+		// Check if PYTHONUNBUFFERED is already set.
+		pythonUnbufferedSet := false
+		for _, envVar := range podTemplateSpec.Spec.Containers[i].Env {
+			if envVar.Name == "PYTHONUNBUFFERED" {
+				pythonUnbufferedSet = true
+				break
+			}
+		}
+
+		// If PYTHONUNBUFFERED is not set, append it.
+		if !pythonUnbufferedSet {
+			podTemplateSpec.Spec.Containers[i].Env = append(
+				podTemplateSpec.Spec.Containers[i].Env, corev1.EnvVar{
+					Name:  "PYTHONUNBUFFERED",
+					Value: "1",
+				})
+		}
 
 		totalReplicas := getTotalReplicas(pytorchjob)
 		nprocPerNode := getNprocPerNodeInt(pytorchjob)
